@@ -16,24 +16,28 @@ public class Main {
     public static void main(String[] args) {
         // 配置数据库连接池
         HikariConfig config = new HikariConfig();
-        config.setJdbcUrl("jdbc:mysql://localhost:3306/test");
-        config.setUsername("root");
-        config.setPassword("123456");
-        config.setDriverClassName("com.mysql.cj.jdbc.Driver");
+//        config.setJdbcUrl("jdbc:mysql://localhost:3306/test");
+//        config.setUsername("root");
+//        config.setPassword("123456");
+//        config.setDriverClassName("com.mysql.cj.jdbc.Driver");
+        config.setJdbcUrl("jdbc:yasdb://localhost:1706/yashandb");
+        config.setUsername("agileboot");
+        config.setPassword("yasdb_123");
+        config.setDriverClassName("com.yashandb.jdbc.Driver");
 
         DataSource dataSource = new HikariDataSource(config);
         DatabaseService dbService = new DatabaseService(dataSource);
-        WordExportService exportService = new WordExportService();
-
+        //WordExportService exportService = new WordExportService();
+        PocExportService exportService = new PocExportService();
         try {
-            // 查询参数
-            LocalDateTime startTime = LocalDateTime.now().minusDays(30);
-            LocalDateTime endTime = LocalDateTime.now();
-            String recordType = "all";
-
-            // 查询数据库
-            List<ReportRecord> records = dbService.queryRecords(startTime, endTime, recordType);
-
+//            // 查询参数
+//            LocalDateTime startTime = LocalDateTime.now().minusDays(30);
+//            LocalDateTime endTime = LocalDateTime.now();
+//            String recordType = "all";
+//
+//            // 查询数据库
+//            List<ReportRecord> records = dbService.queryRecords(startTime, endTime, recordType);
+            List<PocRecord> records = dbService.queryPocRecords("1");
             if (records.isEmpty()) {
                 System.out.println("没有找到符合条件的记录");
                 return;
@@ -45,7 +49,7 @@ public class Main {
                     ".docx";
 
             ClassLoader classLoader = Main.class.getClassLoader();
-            URL resourceUrl = classLoader.getResource("template.docx");
+            URL resourceUrl = classLoader.getResource("poc_report_template.docx");
             assert resourceUrl != null;
             String filePath = resourceUrl.getPath();
             exportService.exportWithTemplate(records, filePath, outputPath);

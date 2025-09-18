@@ -54,4 +54,40 @@ public class DatabaseService {
         }
         return records;
     }
+
+    public List<PocRecord> queryPocRecords(String status) throws SQLException {
+        List<PocRecord> records = new ArrayList<>();
+        String sql = "SELECT a.LABEL AS STATUS,CUSTOMER,PROJECT,b.LABEL AS RISK,DONE,SALES,c.NICKNAME AS SA,d.NICKNAME AS POC,PROGRESS " +
+                "FROM T_POC u " +
+                "LEFT JOIN T_DICT a ON u.STATUS = a.VALUE AND a.DICT_TYPE = 'status' " +
+                "LEFT JOIN T_DICT b ON u.RISK = b.VALUE AND b.DICT_TYPE = 'risk' " +
+                "LEFT JOIN SYS_USER c ON u.SA = c.USER_ID " +
+                "LEFT JOIN SYS_USER d ON u.POC = d.USER_ID " +
+                "WHERE u.DELETED = 0 AND u.STATUS = ? " +
+                "ORDER BY u.CREATE_TIME DESC";
+
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setObject(1, status);
+
+            try (ResultSet rs = pstmt.executeQuery()) {
+                while (rs.next()) {
+                    PocRecord record = new PocRecord(
+                            rs.getString("STATUS"),
+                            rs.getString("CUSTOMER"),
+                            rs.getString("PROJECT"),
+                            rs.getString("RISK"),
+                            rs.getString("DONE"),
+                            rs.getString("SALES"),
+                            rs.getString("SA"),
+                            rs.getString("POC"),
+                            rs.getInt("PROGRESS")
+                    );
+                    records.add(record);
+                }
+            }
+        }
+        return records;
+    }
 }
