@@ -20,7 +20,7 @@ public class Main {
 //        config.setUsername("root");
 //        config.setPassword("123456");
 //        config.setDriverClassName("com.mysql.cj.jdbc.Driver");
-        config.setJdbcUrl("jdbc:yasdb://localhost:1706/yashandb");
+        config.setJdbcUrl("jdbc:yasdb://localhost:1698/yashandb");
         config.setUsername("agileboot");
         config.setPassword("yasdb_123");
         config.setDriverClassName("com.yashandb.jdbc.Driver");
@@ -37,11 +37,7 @@ public class Main {
 //
 //            // 查询数据库
 //            List<ReportRecord> records = dbService.queryRecords(startTime, endTime, recordType);
-            List<PocRecord> records = dbService.queryPocRecords("1");
-            if (records.isEmpty()) {
-                System.out.println("没有找到符合条件的记录");
-                return;
-            }
+
 
             // 生成Word文档
             String outputPath = "Database_Report_" +
@@ -52,14 +48,14 @@ public class Main {
             URL resourceUrl = classLoader.getResource("poc_report_template.docx");
             assert resourceUrl != null;
             String filePath = resourceUrl.getPath();
-            exportService.exportWithTemplate(records, filePath, outputPath);
+            exportService.exportWithTemplate(dbService, filePath, outputPath, "2025-09-08", "2025-09-14");
 
             System.out.println("文档生成成功: " + outputPath);
-            System.out.println("共导出 " + records.size() + " 条记录");
+            //System.out.println("共导出 " + records.size() + " 条记录");
 
-        } catch (SQLException e) {
-            System.err.println("数据库查询错误: " + e.getMessage());
-            e.printStackTrace();
+//        } catch (SQLException e) {
+//            System.err.println("数据库查询错误: " + e.getMessage());
+//            e.printStackTrace();
         } catch (IOException e) {
             System.err.println("文件生成错误: " + e.getMessage());
             e.printStackTrace();

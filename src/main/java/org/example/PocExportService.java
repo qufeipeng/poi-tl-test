@@ -5,33 +5,51 @@ import com.deepoove.poi.config.Configure;
 
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class PocExportService {
 
-    public void exportWithTemplate(List<PocRecord> records, String templatePath, String outputPath)
+    public void exportWithTemplate(DatabaseService dbService, String templatePath, String outputPath, String beginDate, String endDate)
             throws IOException {
-        Configure config = Configure.builder()
-                .bind("customer", new BoldRenderPolicy()) // 注册加粗策略
-                .bind("project", new BoldRenderPolicy()) // 注册加粗策略
-                .bind("reportDate", new BoldRenderPolicy()) // 注册加粗策略
-                .build();
+//        Configure config = Configure.builder()
+//                .bind("customer", new BoldRenderPolicy()) // 注册加粗策略
+//                .bind("project", new BoldRenderPolicy()) // 注册加粗策略
+//                .bind("reportDate", new BoldRenderPolicy()) // 注册加粗策略
+//                .build();
         Map<String, Object> data = new HashMap<>();
 
         // 添加基本数据
         data.put("reportDate", java.time.LocalDateTime.now().format(
                 java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd")));
 
+        List<PocRecord> pocRecords;
+        List<PocRecord> impRecords;
+        try {
+            pocRecords = dbService.queryPocRecords(beginDate, endDate,"1");
+            impRecords = dbService.queryPocRecords(beginDate, endDate,"5");
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+
+        List<PocRecord> allRecord = Stream.concat(pocRecords.stream(), impRecords.stream())
+                .collect(Collectors.toList());
+
         // 添加摘要
-        data.put("summary", buildSummaryText(records));
+        data.put("summary", buildSummaryText(allRecord));
 
         // 添加记录列表
-        data.put("pocRecords", records);
+        data.put("pocRecords", pocRecords);
+        data.put("impRecords", impRecords);
 
         // 编译模板并渲染
-        XWPFTemplate template = XWPFTemplate.compile(templatePath,config).render(data);
+        //XWPFTemplate template = XWPFTemplate.compile(templatePath,config).render(data);
+        XWPFTemplate template = XWPFTemplate.compile(templatePath).render(data);
 
         // 保存文件
         try (FileOutputStream out = new FileOutputStream(outputPath)) {

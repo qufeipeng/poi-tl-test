@@ -17,7 +17,11 @@ public class BoldRenderPolicy extends AbstractRenderPolicy<String> {
 
         // 创建加粗的运行对象
         XWPFRun run = paragraph.createRun();
-        run.setText(context.getData());
+        if (context.getEleTemplate().getSource().equals("{{project}}")){
+            run.setText("（" + context.getData() + "）");
+        }else {
+            run.setText(context.getData());
+        }
         run.setBold(true);
         run.setFontSize(14);
         this.clearPlaceholder(paragraph, " ");

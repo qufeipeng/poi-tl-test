@@ -55,21 +55,26 @@ public class DatabaseService {
         return records;
     }
 
-    public List<PocRecord> queryPocRecords(String status) throws SQLException {
+    public List<PocRecord> queryPocRecords(String beginDate, String endDate, String status) throws SQLException {
         List<PocRecord> records = new ArrayList<>();
-        String sql = "SELECT a.LABEL AS STATUS,CUSTOMER,PROJECT,b.LABEL AS RISK,DONE,SALES,c.NICKNAME AS SA,d.NICKNAME AS POC,PROGRESS " +
+        String sql = "SELECT a.LABEL AS STATUS,CUSTOMER,PROJECT,b.LABEL AS RISK,PLAN,EVALUATE, " +
+                "SALES,c.NICKNAME AS SA,d.NICKNAME AS POC,PROGRESS,e.WORK_CONTENT " +
                 "FROM T_POC u " +
                 "LEFT JOIN T_DICT a ON u.STATUS = a.VALUE AND a.DICT_TYPE = 'status' " +
                 "LEFT JOIN T_DICT b ON u.RISK = b.VALUE AND b.DICT_TYPE = 'risk' " +
                 "LEFT JOIN SYS_USER c ON u.SA = c.USER_ID " +
                 "LEFT JOIN SYS_USER d ON u.POC = d.USER_ID " +
+                "LEFT JOIN T_WORK_TIME e ON u.POC_ID  = e.POC_ID AND u.OWNER = e.USER_ID " +
+                "AND e.BEGIN_DATE = ? AND e.END_DATE = ? " +
                 "WHERE u.DELETED = 0 AND u.STATUS = ? " +
                 "ORDER BY u.CREATE_TIME DESC";
 
         try (Connection conn = dataSource.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
-            pstmt.setObject(1, status);
+            pstmt.setObject(1, beginDate);
+            pstmt.setObject(2, endDate);
+            pstmt.setObject(3, status);
 
             try (ResultSet rs = pstmt.executeQuery()) {
                 while (rs.next()) {
@@ -78,11 +83,13 @@ public class DatabaseService {
                             rs.getString("CUSTOMER"),
                             rs.getString("PROJECT"),
                             rs.getString("RISK"),
-                            rs.getString("DONE"),
+                            rs.getString("PLAN"),
+                            rs.getString("EVALUATE"),
                             rs.getString("SALES"),
                             rs.getString("SA"),
                             rs.getString("POC"),
-                            rs.getInt("PROGRESS")
+                            rs.getInt("PROGRESS"),
+                            rs.getString("WORK_CONTENT")
                     );
                     records.add(record);
                 }
