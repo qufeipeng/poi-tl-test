@@ -30,14 +30,17 @@ public class PocExportService {
 
         List<PocRecord> pocRecords;
         List<PocRecord> impRecords;
+        List<PocRecord> finishRecords;
         try {
             pocRecords = dbService.queryPocRecords(beginDate, endDate,"1");
             impRecords = dbService.queryPocRecords(beginDate, endDate,"5");
+            finishRecords = dbService.queryPocRecords(beginDate, endDate,"3");
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
 
-        List<PocRecord> allRecord = Stream.concat(pocRecords.stream(), impRecords.stream())
+        List<PocRecord> allRecord = Stream.of(pocRecords, impRecords, finishRecords)
+                .flatMap(List::stream)
                 .collect(Collectors.toList());
 
         // 添加摘要
@@ -46,6 +49,7 @@ public class PocExportService {
         // 添加记录列表
         data.put("pocRecords", pocRecords);
         data.put("impRecords", impRecords);
+        data.put("finishRecords", finishRecords);
 
         // 编译模板并渲染
         //XWPFTemplate template = XWPFTemplate.compile(templatePath,config).render(data);
