@@ -1,4 +1,5 @@
 package org.example;
+
 import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -57,15 +58,16 @@ public class DatabaseService {
 
     public List<PocRecord> queryPocRecords(String beginDate, String endDate, String status) throws SQLException {
         List<PocRecord> records = new ArrayList<>();
-        String sql = "SELECT a.LABEL AS STATUS,CUSTOMER,PROJECT,b.LABEL AS RISK,PLAN,EVALUATE, " +
-                "SALES,c.NICKNAME AS SA,d.NICKNAME AS POC,PROGRESS,e.WORK_CONTENT " +
+        String sql = "SELECT c.NICKNAME AS OWNER,a.LABEL AS STATUS,CUSTOMER,PROJECT,b.LABEL AS RISK,TODO_RISK,PLAN,EVALUATE, " +
+                "SALES,d.NICKNAME AS SA,e.NICKNAME AS POC,PROGRESS,f.WORK_CONTENT,POC_START_DT,POC_END_DT,ONLINE_DT " +
                 "FROM T_POC u " +
                 "LEFT JOIN T_DICT a ON u.STATUS = a.VALUE AND a.DICT_TYPE = 'status' " +
                 "LEFT JOIN T_DICT b ON u.RISK = b.VALUE AND b.DICT_TYPE = 'risk' " +
-                "LEFT JOIN SYS_USER c ON u.SA = c.USER_ID " +
-                "LEFT JOIN SYS_USER d ON u.POC = d.USER_ID " +
-                "LEFT JOIN T_WORK_TIME e ON u.POC_ID  = e.POC_ID AND u.OWNER = e.USER_ID " +
-                "AND e.BEGIN_DATE = ? AND e.END_DATE = ? " +
+                "LEFT JOIN SYS_USER c ON u.owner = c.USER_ID " +
+                "LEFT JOIN SYS_USER d ON u.SA = d.USER_ID " +
+                "LEFT JOIN SYS_USER e ON u.POC = e.USER_ID " +
+                "LEFT JOIN T_WORK_TIME f ON u.POC_ID  = f.POC_ID AND u.OWNER = f.USER_ID " +
+                "AND f.BEGIN_DATE = ? AND f.END_DATE = ? " +
                 "WHERE u.DELETED = 0 AND u.STATUS = ? " +
                 "ORDER BY u.CREATE_TIME DESC";
 
@@ -79,17 +81,22 @@ public class DatabaseService {
             try (ResultSet rs = pstmt.executeQuery()) {
                 while (rs.next()) {
                     PocRecord record = new PocRecord(
+                            rs.getString("OWNER"),
                             rs.getString("STATUS"),
                             rs.getString("CUSTOMER"),
                             rs.getString("PROJECT"),
                             rs.getString("RISK"),
+                            rs.getString("TODO_RISK"),
                             rs.getString("PLAN"),
                             rs.getString("EVALUATE"),
                             rs.getString("SALES"),
                             rs.getString("SA"),
                             rs.getString("POC"),
                             rs.getInt("PROGRESS"),
-                            rs.getString("WORK_CONTENT")
+                            rs.getString("WORK_CONTENT"),
+                            rs.getDate("POC_START_DT"),
+                            rs.getDate("POC_END_DT"),
+                            rs.getDate("ONLINE_DT")
                     );
                     records.add(record);
                 }
@@ -97,4 +104,73 @@ public class DatabaseService {
         }
         return records;
     }
+
+    public PocCount queryNewPocDetail(String beginDate, String endDate) throws SQLException {
+        PocCount record = null;
+        String sql = "SELECT COUNT(POC_ID) AS NEW_POC_COUNT,LISTAGG(u.CUSTOMER, '、')  AS NEW_POC_DETAIL " +
+                "FROM T_POC u " +
+                "WHERE u.POC_START_DT >= ? AND u.POC_START_DT <= ? " +
+                "AND u.DELETED = 0 AND u.STATUS IN (0, 1, 2)";
+
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setObject(1, beginDate);
+            pstmt.setObject(2, endDate);
+
+            try (ResultSet rs = pstmt.executeQuery()) {
+                while (rs.next()) {
+                    record = new PocCount(
+                            rs.getLong("NEW_POC_COUNT"),
+                            rs.getString("NEW_POC_DETAIL")
+                    );
+                }
+            }
+        }
+        return record;
+    }
+
+    public String queryNewFinishDetail(String beginDate, String endDate) throws SQLException {
+        String record = null;
+        String sql = "SELECT LISTAGG(u.CUSTOMER, '、')  AS POC_DETAIL " +
+                "FROM T_POC u " +
+                "WHERE u.POC_END_DT >= ? AND u.POC_END_DT <= ? " +
+                "AND u.DELETED = 0 AND u.STATUS = 3";
+
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setObject(1, beginDate);
+            pstmt.setObject(2, endDate);
+
+            try (ResultSet rs = pstmt.executeQuery()) {
+                while (rs.next()) {
+                    record = rs.getString("POC_DETAIL");
+                }
+            }
+        }
+        return record;
+    }
+
+    public Long queryPocCount(String status) throws SQLException {
+        Long count = null;
+        String sql = "SELECT COUNT(POC_ID) AS POC_COUNT " +
+                "FROM T_POC u " +
+                "WHERE u.DELETED = 0 AND u.STATUS = ?";
+
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setObject(1, status);
+
+            try (ResultSet rs = pstmt.executeQuery()) {
+                while (rs.next()) {
+                    count = rs.getLong("POC_COUNT");
+                }
+            }
+        }
+        return count;
+    }
+
+
 }

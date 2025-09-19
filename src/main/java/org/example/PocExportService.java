@@ -2,18 +2,24 @@ package org.example;
 
 import com.deepoove.poi.XWPFTemplate;
 import com.deepoove.poi.config.Configure;
+import com.deepoove.poi.data.TableRenderData;
+import com.deepoove.poi.data.Tables;
 
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.text.SimpleDateFormat;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class PocExportService {
+    private static String STATUS_POC = "1";
+    private static String STATUS_POC_FINISH = "3";
+    private static String STATUS_IMP = "5";
+    private static String STATUS_ONLINE = "6";
+    private static String STATUS_ADAPT = "8";
+    private static String STATUS_ADAPT_FINISH = "9";
 
     public void exportWithTemplate(DatabaseService dbService, String templatePath, String outputPath, String beginDate, String endDate)
             throws IOException {
@@ -31,25 +37,66 @@ public class PocExportService {
         List<PocRecord> pocRecords;
         List<PocRecord> impRecords;
         List<PocRecord> finishRecords;
+        List<PocRecord> onlineRecords;
+        List<PocRecord> adaptRecords;
+        List<PocRecord> adaptFinishRecords;
+        PocCount newPocCount;
+        Long pocCount;
+        Long impCount;
+        Long finishCount;
+        String newFinishDetail;
+        Long onlineCount;
+        Long adaptCount;
+        Long adaptFinishCount;
         try {
-            pocRecords = dbService.queryPocRecords(beginDate, endDate,"1");
-            impRecords = dbService.queryPocRecords(beginDate, endDate,"5");
-            finishRecords = dbService.queryPocRecords(beginDate, endDate,"3");
+            pocRecords = dbService.queryPocRecords(beginDate, endDate,STATUS_POC);
+            impRecords = dbService.queryPocRecords(beginDate, endDate,STATUS_IMP);
+            finishRecords = dbService.queryPocRecords(beginDate, endDate,STATUS_POC_FINISH);
+            onlineRecords = dbService.queryPocRecords(beginDate, endDate,STATUS_ONLINE);
+            adaptRecords = dbService.queryPocRecords(beginDate, endDate,STATUS_ADAPT);
+            adaptFinishRecords = dbService.queryPocRecords(beginDate, endDate,STATUS_ADAPT_FINISH);
+
+            newPocCount = dbService.queryNewPocDetail(beginDate, endDate);
+            pocCount = dbService.queryPocCount(STATUS_POC);
+            impCount = dbService.queryPocCount(STATUS_IMP);
+            finishCount = dbService.queryPocCount(STATUS_POC_FINISH);
+            newFinishDetail = dbService.queryNewFinishDetail(beginDate, endDate);
+            onlineCount = dbService.queryPocCount(STATUS_ONLINE);
+            adaptCount = dbService.queryPocCount(STATUS_ADAPT);
+            adaptFinishCount = dbService.queryPocCount(STATUS_ADAPT_FINISH);
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
 
-        List<PocRecord> allRecord = Stream.of(pocRecords, impRecords, finishRecords)
-                .flatMap(List::stream)
-                .collect(Collectors.toList());
+//        List<PocRecord> allRecord = Stream.of(pocRecords, impRecords, finishRecords)
+//                .flatMap(List::stream)
+//                .collect(Collectors.toList());
 
         // 添加摘要
-        data.put("summary", buildSummaryText(allRecord));
+        data.put("newPocCount", newPocCount.getCount());
+        data.put("newPocDetail", newPocCount.getDetail());
 
-        // 添加记录列表
+        data.put("pocCount", pocCount);
+
+        data.put("impCount", impCount);
+        data.put("impDetail", impCount);
+
+        data.put("finishCount", finishCount);
+        data.put("newFinishDetail", newFinishDetail);
+
+        data.put("onlineCount", onlineCount);
+        data.put("adaptCount", adaptCount);
+        data.put("adaptFinishCount", adaptFinishCount);
+
+        // 输出段落
         data.put("pocRecords", pocRecords);
         data.put("impRecords", impRecords);
         data.put("finishRecords", finishRecords);
+
+        // 输出表格
+        data.put("onlineTable", onlineRecords);
+        data.put("adaptTable", adaptRecords);
+        data.put("adaptFinishTable", adaptFinishRecords);
 
         // 编译模板并渲染
         //XWPFTemplate template = XWPFTemplate.compile(templatePath,config).render(data);
@@ -62,15 +109,4 @@ public class PocExportService {
         template.close();
     }
 
-    private String buildSummaryText(List<PocRecord> records) {
-        if (records.isEmpty()) {
-            return "暂无记录数据";
-        }
-
-        StringBuilder summary = new StringBuilder();
-        summary.append("报告摘要：\n");
-        summary.append("• 本次共查询到 ").append(records.size()).append(" 条记录\n");
-
-        return summary.toString();
-    }
 }
