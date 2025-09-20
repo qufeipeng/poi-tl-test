@@ -43,6 +43,7 @@ public class PocExportService {
         PocCount newPocCount;
         Long pocCount;
         Long impCount;
+        String newImpDetail;
         Long finishCount;
         String newFinishDetail;
         Long onlineCount;
@@ -59,6 +60,7 @@ public class PocExportService {
             newPocCount = dbService.queryNewPocDetail(beginDate, endDate);
             pocCount = dbService.queryPocCount(STATUS_POC);
             impCount = dbService.queryPocCount(STATUS_IMP);
+            newImpDetail = dbService.queryNewImpDetail(beginDate, endDate);
             finishCount = dbService.queryPocCount(STATUS_POC_FINISH);
             newFinishDetail = dbService.queryNewFinishDetail(beginDate, endDate);
             onlineCount = dbService.queryPocCount(STATUS_ONLINE);
@@ -79,7 +81,7 @@ public class PocExportService {
         data.put("pocCount", pocCount);
 
         data.put("impCount", impCount);
-        data.put("impDetail", impCount);
+        data.put("newImpDetail", newImpDetail);
 
         data.put("finishCount", finishCount);
         data.put("newFinishDetail", newFinishDetail);

@@ -107,9 +107,9 @@ public class DatabaseService {
 
     public PocCount queryNewPocDetail(String beginDate, String endDate) throws SQLException {
         PocCount record = null;
-        String sql = "SELECT COUNT(POC_ID) AS NEW_POC_COUNT,LISTAGG(u.CUSTOMER, '、')  AS NEW_POC_DETAIL " +
+        String sql = "SELECT COUNT(POC_ID) AS NEW_POC_COUNT,LISTAGG(u.CUSTOMER || '（' || u.PROJECT || '）', '、')  AS NEW_POC_DETAIL " +
                 "FROM T_POC u " +
-                "WHERE u.POC_START_DT >= ? AND u.POC_START_DT <= ? " +
+                "WHERE TO_CHAR(u.CREATE_TIME,'yyyy-mm-dd') >= ? AND TO_CHAR(u.CREATE_TIME,'yyyy-mm-dd') <= ? " +
                 "AND u.DELETED = 0 AND u.STATUS IN (0, 1, 2)";
 
         try (Connection conn = dataSource.getConnection();
@@ -132,7 +132,7 @@ public class DatabaseService {
 
     public String queryNewFinishDetail(String beginDate, String endDate) throws SQLException {
         String record = null;
-        String sql = "SELECT LISTAGG(u.CUSTOMER, '、')  AS POC_DETAIL " +
+        String sql = "SELECT LISTAGG(u.CUSTOMER || '（' || u.PROJECT || '）', '、')  AS POC_DETAIL " +
                 "FROM T_POC u " +
                 "WHERE u.POC_END_DT >= ? AND u.POC_END_DT <= ? " +
                 "AND u.DELETED = 0 AND u.STATUS = 3";
@@ -142,6 +142,31 @@ public class DatabaseService {
 
             pstmt.setObject(1, beginDate);
             pstmt.setObject(2, endDate);
+
+            try (ResultSet rs = pstmt.executeQuery()) {
+                while (rs.next()) {
+                    record = rs.getString("POC_DETAIL");
+                }
+            }
+        }
+        return record;
+    }
+
+    public String queryNewImpDetail(String beginDate, String endDate) throws SQLException {
+        String record = null;
+        String sql = "SELECT LISTAGG(u.CUSTOMER || '（' || u.PROJECT || '）', '、')  AS POC_DETAIL " +
+                "FROM T_POC u " +
+                "WHERE ((u.POC_END_DT >= ? AND u.POC_END_DT <= ?) " +
+                "OR (TO_CHAR(u.CREATE_TIME,'yyyy-mm-dd') >= ? AND TO_CHAR(u.CREATE_TIME,'yyyy-mm-dd') <= ?)) " +
+                "AND u.DELETED = 0 AND u.STATUS = 5";
+
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setObject(1, beginDate);
+            pstmt.setObject(2, endDate);
+            pstmt.setObject(3, beginDate);
+            pstmt.setObject(4, endDate);
 
             try (ResultSet rs = pstmt.executeQuery()) {
                 while (rs.next()) {
